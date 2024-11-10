@@ -1,0 +1,28 @@
+# Settings
+local_settings.py
+
+# Database
+# db.sqlite3
+
+# Ignore Python bytecode files
+__pycache__/
+*.py[cod]
+
+# Ignore migration pycache files
+# */migrations/
+*/migrations/__pycache__/
+
+# Ignore .env
+.env
+
+# wsl-requirements
+wsl-requirements.txt
+
+# media
+/media/
+
+# static
+/static/
+
+# error.log
+error.log
