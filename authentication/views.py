@@ -6,8 +6,20 @@ from .serializers import *
 from .validators import *
 
 
-class GenerateTokenApiView(generics.GenericAPIView):
-    serializer_class = TokenSerializer
+class RegisterTokenApiView(generics.GenericAPIView):
+    serializer_class = RegisterTokenSerializer
+
+    def post(self, request):
+        try:
+            serializer = self.serializer_class(request=request, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            return Response({'error': e.detail}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class LoginTokenApiView(generics.GenericAPIView):
+    serializer_class = LoginTokenSerializer
 
     def post(self, request):
         try:
