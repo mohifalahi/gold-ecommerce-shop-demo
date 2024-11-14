@@ -17,7 +17,21 @@ def handle_otp_generation(mobile):
     TempUser.objects.create(mobile=mobile, token=otp)
 
 
-class TokenSerializer(serializers.ModelSerializer):
+def check_ip_validation(self):
+    request_ip = get_ip(request=self.request)
+    ip_obj = IP.objects.filter(ip=request_ip)
+    if not ip_obj:
+        IP.objects.create(ip=request_ip)
+        return True
+    else:
+        can_access, message = ip_obj[0].can_access()
+        if can_access:
+            return True
+        else:
+            raise ValidationError({'error': message})
+
+
+class RegisterTokenSerializer(serializers.ModelSerializer):
     mobile = serializers.CharField(max_length=11)
 
     def __init__(self, request=None, **kwargs):
@@ -27,49 +41,50 @@ class TokenSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['mobile']
-    
-    def check_ip_validation(self):
-        request_ip = get_ip(request=self.request)
-        ip_obj = IP.objects.filter(ip=request_ip)
-        if not ip_obj:
-            IP.objects.create(ip=request_ip)
-            return True
-        else:
-            can_access, message = ip_obj[0].can_access()
-            if can_access:
-                return True
-            else:
-                raise ValidationError({'error': message})
 
     def validate(self, attrs):
 
-        request = self.request
-        request_path = request.path
-
-        self.check_ip_validation()
+        check_ip_validation(self)
         mobile = attrs.get('mobile', None)
 
         user_query = User.objects.filter(mobile=mobile)
 
-        if request_path == '/api/v1/auth/register-otp/':
-            if user_query:
-                raise ValidationError('this user is already registered.')
-            else:
-                handle_otp_generation(mobile)
-            
-            return {
-                'mobile': mobile
-            }
+        if user_query:
+            raise ValidationError('this user is already registered.')
+        else:
+            handle_otp_generation(mobile)
+        
+        return {
+            'mobile': mobile
+        }
+        
 
-        if request_path == '/api/v1/auth/login-otp/':
-            if not user_query:
-                raise ValidationError('this user does not exist.')
-            else:
-                handle_otp_generation(mobile)
-            
-            return {
-                'mobile': mobile
-            }
+class LoginTokenSerializer(serializers.ModelSerializer):
+    mobile = serializers.CharField(max_length=11)
+
+    def __init__(self, request=None, **kwargs):
+        self.request = request
+        super().__init__(**kwargs)
+
+    class Meta:
+        model = User
+        fields = ['mobile']
+
+    def validate(self, attrs):
+
+        check_ip_validation(self)
+        mobile = attrs.get('mobile', None)
+
+        user_query = User.objects.filter(mobile=mobile)
+
+        if not user_query:
+            raise ValidationError('this user does not exist.')
+        else:
+            handle_otp_generation(mobile)
+        
+        return {
+            'mobile': mobile
+        }
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -138,4 +153,3 @@ class UserLoginSerializer(serializers.ModelSerializer):
         return {
             'access': str(refresh.access_token),
         }
-
